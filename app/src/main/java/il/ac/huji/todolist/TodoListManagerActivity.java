@@ -1,47 +1,37 @@
 package il.ac.huji.todolist;
 
 import android.app.Activity;
-import android.content.Context;
-import android.graphics.Color;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Pair;
 import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 
 public class TodoListManagerActivity extends Activity {
 
-    private ArrayList<String> items;
+    private ArrayList<Pair<String,Date>> items;
     private ListView todos;
+    private final int REQ_CODE_ADD_NEW_ITEM = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_todo_list_manager);
 
-        items = new ArrayList<>();
+        items = new ArrayList<Pair<String, Date>>();
 
         registerForContextMenu(findViewById(R.id.lstTodoItems));
-        ArrayAdapter<String> itemsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, items){
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                TextView textView = (TextView)view.findViewById(android.R.id.text1);
-                textView.setTextColor(position % 2 == 0 ? Color.RED : Color.BLUE);
+        TodoListAdapter itemsAdapter = new TodoListAdapter(this, items);
 
-                return view;
-            }
-        };
         todos = (ListView)findViewById(R.id.lstTodoItems);
         todos.setAdapter(itemsAdapter);
     }
@@ -49,7 +39,6 @@ public class TodoListManagerActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.add_item, menu);
         return true;
     }
@@ -59,14 +48,30 @@ public class TodoListManagerActivity extends Activity {
         if (v.getId() == R.id.lstTodoItems)
         {
             final AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo)menuInfo;
-            menu.setHeaderTitle(items.get(info.position));
+            final String title = items.get(info.position).first;
+            menu.setHeaderTitle(title);
 
             MenuItem menuItemDelete = menu.add("Delete Item");
             menuItemDelete.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                 @Override
                 public boolean onMenuItemClick(MenuItem item) {
                     items.remove(info.position);
-                    ((ArrayAdapter<String>)todos.getAdapter()).notifyDataSetChanged();
+                    ((TodoListAdapter)todos.getAdapter()).notifyDataSetChanged();
+                    return true;
+                }
+            });
+
+            final String CALL_ITEM_PREFIX = "Call ";
+            if (!title.startsWith(CALL_ITEM_PREFIX))
+                return;
+
+            MenuItem menuItemCall = menu.add(title);
+            menuItemCall.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    String phoneNumber = title.substring(CALL_ITEM_PREFIX.length());
+                    Intent dial = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phoneNumber));
+                    startActivity(dial);
                     return true;
                 }
             });
@@ -75,9 +80,6 @@ public class TodoListManagerActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         switch (id)
@@ -92,12 +94,21 @@ public class TodoListManagerActivity extends Activity {
 
     public void addItem()
     {
-        EditText inputTextbox = (EditText)findViewById(R.id.edtNewItem);
-        items.add(inputTextbox.getText().toString());
+        Intent intent = new Intent(this, AddNewTodoItemActivity.class);
+        startActivityForResult(intent, REQ_CODE_ADD_NEW_ITEM);
+    }
 
-        InputMethodManager mgr = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        mgr.hideSoftInputFromWindow(inputTextbox.getWindowToken(), 0);
+    protected void onActivityResult(int reqCode, int resCode, Intent data) {
+        if (resCode == RESULT_CANCELED)
+            return;
 
-        inputTextbox.getText().clear();
+        switch (reqCode) {
+            case REQ_CODE_ADD_NEW_ITEM:
+                String itemTitle = data.getStringExtra("item_title");
+                Date dueDate = (Date) data.getSerializableExtra("due_date");
+
+                items.add(new Pair<String, Date>(itemTitle, dueDate));
+                ((TodoListAdapter)todos.getAdapter()).notifyDataSetChanged();
+        }
     }
 }
