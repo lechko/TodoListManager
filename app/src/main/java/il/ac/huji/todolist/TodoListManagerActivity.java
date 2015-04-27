@@ -57,6 +57,7 @@ public class TodoListManagerActivity extends Activity {
                 TodoListContract.TodoListEntry.TABLE_NAME,
                 TodoListContract.TodoListEntry._ID + " = ?",
                 new String[]{Long.toString(itemID)});
+        todosDB.close();
     }
 
     @Override
@@ -131,6 +132,7 @@ public class TodoListManagerActivity extends Activity {
             dueDate.setTime(c.getLong(2));
             items.add(new TodoListItem(id, title, dueDate));
         }
+        todosDB.close();
     }
 
     public void addItem()
@@ -145,7 +147,9 @@ public class TodoListManagerActivity extends Activity {
         ContentValues values = new ContentValues();
         values.put(TodoListContract.TodoListEntry.COLUMN_NAME_ITEM_TITLE, title);
         values.put(TodoListContract.TodoListEntry.COLUMN_NAME_DUE_DATE, dueDate.getTime());
-        return todosDB.insert(TodoListContract.TodoListEntry.TABLE_NAME, null, values);
+        long id = todosDB.insert(TodoListContract.TodoListEntry.TABLE_NAME, null, values);
+        todosDB.close();
+        return id;
     }
 
     protected void onActivityResult(int reqCode, int resCode, Intent data) {
