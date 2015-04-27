@@ -2,7 +2,6 @@ package il.ac.huji.todolist;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,17 +10,15 @@ import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.GregorianCalendar;
 
-public class TodoListAdapter extends ArrayAdapter<Pair<String, Date>> {
+public class TodoListAdapter extends ArrayAdapter<TodoListItem> {
     private static class ViewHolder {
         private TextView itemTitle;
         private TextView dueDate;
-        private int defaultColor;
     }
 
-    public TodoListAdapter(Context context, ArrayList<Pair<String, Date>> items) {
+    public TodoListAdapter(Context context, ArrayList<TodoListItem> items) {
         super(context, 0, items);
     }
 
@@ -34,28 +31,27 @@ public class TodoListAdapter extends ArrayAdapter<Pair<String, Date>> {
             viewHolder = new ViewHolder();
             viewHolder.itemTitle = (TextView) convertView.findViewById(R.id.txtTitle);
             viewHolder.dueDate = (TextView) convertView.findViewById(R.id.txtDueDate);
-            viewHolder.defaultColor = viewHolder.itemTitle.getTextColors().getDefaultColor();
 
             convertView.setTag(viewHolder);
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
-            viewHolder.itemTitle.setTextColor(viewHolder.defaultColor);
-            viewHolder.dueDate.setTextColor(viewHolder.defaultColor);
         }
+        viewHolder.itemTitle.setTextColor(Color.GRAY);
+        viewHolder.dueDate.setTextColor(Color.GRAY);
 
-        Pair<String, Date> item = getItem(position);
+        TodoListItem item = getItem(position);
         if (item == null)
             return convertView;
-        viewHolder.itemTitle.setText(item.first);
-        if (item.second == null)
+        viewHolder.itemTitle.setText(item.title);
+        if (item.dueDate == null)
         {
             viewHolder.dueDate.setText("No due date");
             return convertView;
         }
 
-        viewHolder.dueDate.setText(new SimpleDateFormat("dd/MM/yyyy").format(item.second));
+        viewHolder.dueDate.setText(new SimpleDateFormat("dd/MM/yyyy").format(item.dueDate));
 
-        if (item.second.before(new GregorianCalendar().getTime())) {
+        if (item.dueDate.before(new GregorianCalendar().getTime())) {
             viewHolder.itemTitle.setTextColor(Color.RED);
             viewHolder.dueDate.setTextColor(Color.RED);
         }
